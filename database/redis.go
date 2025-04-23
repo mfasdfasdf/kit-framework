@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"framework/config"
+	"github.com/mfasdfasdf/kit-framework/config"
 	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"

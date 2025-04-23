@@ -1,8 +1,8 @@
 package server
 
 import (
-	"framework/config"
-	"framework/log"
+	"github.com/mfasdfasdf/kit-framework/config"
+	"github.com/mfasdfasdf/kit-framework/log"
 	"sync"
 )
 

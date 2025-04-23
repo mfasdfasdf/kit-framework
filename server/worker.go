@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"framework/log"
+	"github.com/mfasdfasdf/kit-framework/log"
 )
 
 type worker struct {

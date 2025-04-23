@@ -1,8 +1,8 @@
 package health
 
 import (
-	"framework/log"
 	"github.com/arl/statsviz"
+	"github.com/mfasdfasdf/kit-framework/log"
 	"net/http"
 	"strconv"
 )

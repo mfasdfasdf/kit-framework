@@ -1,6 +1,6 @@
 package server
 
-import "framework/log"
+import "github.com/mfasdfasdf/kit-framework/log"
 
 type LogicHandler func(beforeTask *MessageReqTask) *MessageResTask
 

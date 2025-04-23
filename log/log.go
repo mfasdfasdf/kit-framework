@@ -1,8 +1,8 @@
 package log
 
 import (
-	"framework/config"
 	"github.com/charmbracelet/log"
+	"github.com/mfasdfasdf/kit-framework/config"
 	"os"
 	"time"
 )

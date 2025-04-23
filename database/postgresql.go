@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"framework/config"
+	"github.com/mfasdfasdf/kit-framework/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
