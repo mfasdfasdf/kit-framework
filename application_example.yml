@@ -1,0 +1,66 @@
+appName: "service_name"
+version: "1.0.0"
+env: "dev"
+cpuCount: 10
+workId: 1
+health:
+  port: 9010
+restful:
+  url: 127.0.0.1
+  port: 9011
+ws:
+  url: 127.0.0.1
+  port: 9012
+grpc:
+  url: 127.0.0.1
+  port: 9013
+etcd:
+  url: 127.0.0.1
+  port: 2379
+  dialTime: 5
+  ttl: 10
+mongo:
+  url: 127.0.0.1
+  port: 27017
+  username: "username"
+  password: "password"
+postgresql:
+  url: 127.0.0.1
+  port: 9432
+  username: "username"
+  password: "password"
+  db: "db_name"
+  maxIdleSize: 10
+  maxOpenSize: 50
+redis:
+  url: 127.0.0.1
+  port: 9379
+  username: "username"
+  password: "password"
+  db: 14
+  poolSize: 100
+  maxIdleSize: 50
+  minIdleSize: 10
+jwt:
+  secret: "JWT_SECRET"
+connectionTotal: 10000
+distribute:
+  workerSize: 10
+  queueSize: 10
+nats:
+  url: 127.0.0.1
+  port: 4222
+messageNodes:
+  - key: connector_service_channel
+    weight: 1
+  - key: hall_service_channel
+    weight: 1
+  - key: game_test_service_channel
+    weight: 1
+log:
+  level: "debug"
+aliYun:
+  accessKeyId: ""
+  accessKeySecret: ""
+  smsSignName: ""
+  smsEndpoint: ""
