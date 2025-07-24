@@ -83,12 +83,12 @@ type MessageReqTask struct {
 	BodyFromConnId int64
 }
 
-type MessageResTask struct {
+type MessageResTask struct
 	PacketType    int
 	BodyFlat      int
 	BodyRoute     string
 	BodyCode      int
 	BodyMessage   string
 	BodyData      any
-	BodyToConnIds []int64
+	fffffBodyToConnIds []int64
 }

@@ -1,3 +1,6 @@
 .idea/
 .vscode/
 *.sum
+main.go
+app.go
+application.yml

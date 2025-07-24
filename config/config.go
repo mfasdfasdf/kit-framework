@@ -12,7 +12,8 @@ type Config struct {
 	WorkId          int64          `json:"WorkId"`
 	Health          HealthConf     `mapstructure:"health"`
 	Restful         RestfulConf    `mapstructure:"restful"`
-	Ws              WsConf         `mapstructure:"ws"`
+	Ws              WSConf         `mapstructure:"ws"`
+	Tcp             TCPConf        `mapstructure:"tcp"`
 	Grpc            GrpcConf       `mapstructure:"grpc"`
 	Etcd            EtcdConf       `mapstructure:"etcd"`
 	Mongo           MongoConf      `mapstructure:"mongo"`
@@ -36,7 +37,12 @@ type RestfulConf struct {
 	Port int    `json:"port"`
 }
 
-type WsConf struct {
+type WSConf struct {
+	Url  string `json:"url"`
+	Port int    `json:"port"`
+}
+
+type TCPConf struct {
 	Url  string `json:"url"`
 	Port int    `json:"port"`
 }
