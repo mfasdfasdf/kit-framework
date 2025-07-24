@@ -1,6 +1,6 @@
 module github.com/mfasdfasdf/kit-framework
 
-go 1.23.5
+go 1.24.5
 
 require (
 	github.com/arl/statsviz v0.6.0
