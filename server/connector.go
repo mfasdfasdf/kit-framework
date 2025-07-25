@@ -61,6 +61,13 @@ func (o *WSConnector) reader() {
 			log.Error("Decode packet err:%v", err)
 			continue
 		}
+		messageJson, err := convertor.ToJson(message)
+		if err != nil {
+			log.Error("convert to json err:%v", err)
+			continue
+		}
+		log.Info("=======>receive  message:%v", messageJson)
+		//构建任务
 		var contentPackReq ContentPackReq
 		contentBytes, err := convertor.ToBytes(message.Content)
 		if err != nil {
@@ -72,7 +79,6 @@ func (o *WSConnector) reader() {
 			log.Error("bytes to obj err:%v", err)
 			continue
 		}
-		//构建任务
 		taskReq := &TaskPackReq{
 			MessageType:      message.Type,
 			PacketFromConnId: o.Id,
@@ -136,21 +142,34 @@ func (o *TCPConnector) GetId() int64 {
 
 func (o *TCPConnector) reader() {
 	for {
-		reqPacket, err := TCPDecodePacket(o.Conn)
+		message, err := TCPDecodePacket(o.Conn)
 		if err != nil {
 			log.Error("DecodePacket err:%v", err)
+			_manager.DelConn(o.Id)
+			return
+		}
+		messageJson, _ := convertor.ToJson(message)
+		log.Info("======>receive message:%v", messageJson)
+		//构建任务
+		var contentPackReq ContentPackReq
+		contentBytes, err := convertor.ToBytes(message.Content)
+		if err != nil {
+			log.Error("any to obj err:%v", err)
 			continue
 		}
-		log.Info("reqPacket:%v", reqPacket)
-		//构建任务
-		//beforeTask := &TaskReq{
-		//	PacketType:       reqPacket.Type,
-		//	PacketFromConnId: o.Id,
-		//	BodyFlat:         reqPacket.Body.Flag,
-		//	BodyRoute:        reqPacket.Body.Route,
-		//	BodyData:         reqPacket.Body.Data,
-		//}
-		//_dispatcher.receiveTask(beforeTask)
+		err = json.Unmarshal(contentBytes, &contentPackReq)
+		if err != nil {
+			log.Error("bytes to obj err:%v", err)
+			continue
+		}
+		taskReq := &TaskPackReq{
+			MessageType:      message.Type,
+			PacketFromConnId: o.Id,
+			ContentFlag:      contentPackReq.Flag,
+			ContentRoute:     contentPackReq.Route,
+			ContentData:      contentPackReq.Data,
+		}
+		_dispatcher.receiveTask(taskReq)
 	}
 }
 
@@ -165,7 +184,7 @@ func (o *TCPConnector) writer() {
 			if err != nil {
 				return
 			}
-			log.Info("writerChan->messageResPacket:%v", string(bytesData))
+			log.Info("======>send message:%v", string(bytesData))
 			resBytes, err := TCPEncodePacket(messageResPacket)
 			if err != nil {
 				log.Error("EncodePacket err:%v", err)

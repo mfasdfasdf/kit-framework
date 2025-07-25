@@ -23,9 +23,9 @@ const (
 
 // 消息包
 type MessagePacket struct {
-	Length  int `json:"length"`
-	Type    int `json:"type"`
-	Content any `json:"content"`
+	Length  int64 `json:"length"`
+	Type    int64 `json:"type"`
+	Content any   `json:"content"`
 }
 
 // 内容包flag类型
@@ -54,7 +54,7 @@ type ContentPackRes struct {
 
 // 任务包(req)
 type TaskPackReq struct {
-	MessageType      int
+	MessageType      int64
 	PacketFromConnId int64
 	ContentFlag      int
 	ContentRoute     string
@@ -63,7 +63,7 @@ type TaskPackReq struct {
 
 // 任务包(res)
 type TaskPackRes struct {
-	MessageType       int
+	MessageType       int64
 	PacketSendConnIds []int64
 	ContentFlag       int
 	ContentRoute      string
@@ -88,7 +88,7 @@ func WSEncodePacket(message *MessagePacket) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	message.Length = len(contentBytes)
+	message.Length = int64(len(contentBytes))
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -98,14 +98,13 @@ func WSEncodePacket(message *MessagePacket) ([]byte, error) {
 
 // tcp消息包解码
 func TCPDecodePacket(conn *net.TCPConn) (*MessagePacket, error) {
-	messagePacket := &MessagePacket{}
+	message := &MessagePacket{}
 
 	lengthArr := make([]byte, 8)
 	if _, err := conn.Read(lengthArr); err != nil {
 		return nil, err
 	}
-	lengthBuff := bytes.NewReader(lengthArr)
-	if err := binary.Read(lengthBuff, binary.LittleEndian, messagePacket.Length); err != nil {
+	if err := binary.Read(bytes.NewReader(lengthArr), binary.LittleEndian, &message.Length); err != nil {
 		return nil, err
 	}
 
@@ -113,20 +112,23 @@ func TCPDecodePacket(conn *net.TCPConn) (*MessagePacket, error) {
 	if _, err := conn.Read(typeArr); err != nil {
 		return nil, err
 	}
-	typeBuff := bytes.NewReader(typeArr)
-	if err := binary.Read(typeBuff, binary.LittleEndian, messagePacket.Type); err != nil {
+	if err := binary.Read(bytes.NewReader(typeArr), binary.LittleEndian, &message.Type); err != nil {
 		return nil, err
 	}
 
-	bodyArr := make([]byte, messagePacket.Length)
-	if _, err := conn.Read(bodyArr); err != nil {
+	contentArr := make([]byte, message.Length)
+	if _, err := conn.Read(contentArr); err != nil {
 		return nil, err
 	}
-	bodyBuff := bytes.NewReader(bodyArr)
-	if err := binary.Read(bodyBuff, binary.LittleEndian, &messagePacket.Content); err != nil {
+	contentBytes := make([]byte, message.Length)
+	if err := binary.Read(bytes.NewReader(contentArr), binary.LittleEndian, contentBytes); err != nil {
 		return nil, err
 	}
-	return messagePacket, nil
+	err := json.Unmarshal(contentBytes, &message.Content)
+	if err != nil {
+		return nil, err
+	}
+	return message, nil
 }
 
 // tcp消息包编码
@@ -135,9 +137,7 @@ func TCPEncodePacket(message *MessagePacket) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	contentLength := len(contentBytes)
-	message.Length = contentLength
-
+	message.Length = int64(len(contentBytes))
 	dataBuff := bytes.NewBuffer([]byte{})
 	if err := binary.Write(dataBuff, binary.LittleEndian, message.Length); err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func TCPEncodePacket(message *MessagePacket) ([]byte, error) {
 	if err := binary.Write(dataBuff, binary.LittleEndian, message.Type); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(dataBuff, binary.LittleEndian, message.Content); err != nil {
+	if err := binary.Write(dataBuff, binary.LittleEndian, contentBytes); err != nil {
 		return nil, err
 	}
 	return dataBuff.Bytes(), nil

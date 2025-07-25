@@ -1,8 +1,4 @@
 .idea/
 .vscode/
 *.sum
-main_server.go
-main_client.go
-app.go
-application.yml
-service.go
+test/

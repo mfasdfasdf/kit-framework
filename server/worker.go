@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/duke-git/lancet/v2/convertor"
 	"github.com/mfasdfasdf/kit-framework/log"
 )
 
@@ -33,7 +34,12 @@ func (w *worker) start() {
 			if !ok {
 				continue
 			}
-			log.Info("======>workerId: %v, 处理任务:%v", w.workerId, taskReq)
+			taskReqJson, err := convertor.ToJson(taskReq)
+			if err != nil {
+				log.Error("DecodePacket err:%v", err)
+				continue
+			}
+			log.Info("======>workerId: %v, 处理任务:%v", w.workerId, taskReqJson)
 			handlerFunc := _handler.QueryHandler(taskReq.ContentRoute)
 			if handlerFunc == nil {
 				continue
