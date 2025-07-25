@@ -35,11 +35,11 @@ func initDispatcher() {
 	log.Info("======>初始化分发管理完成!<======")
 }
 
-func (d *dispatcher) receiveTask(beforeTask *MessageReqTask) {
+func (d *dispatcher) receiveTask(task *TaskReq) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	workerSize := len(d.workers)
-	d.workers[d.currentWorkerId].pushTask(beforeTask)
+	d.workers[d.currentWorkerId].pushTask(task)
 	d.currentWorkerId++
 	if d.currentWorkerId >= len(d.workers) {
 		d.currentWorkerId = d.currentWorkerId % workerSize

@@ -33,7 +33,7 @@ func initManager() {
 func (m *manager) AddConn(conn IConnector) {
 	m.connections.Set(conn.GetId(), &conn)
 	size := m.ConnSize()
-	log.Info("======> id:%v,已连接, 连接总数:%v<======", conn.GetId(), size)
+	log.Info("======>id:%v,已连接, 连接总数:%v<======", conn.GetId(), size)
 }
 
 func (m *manager) DelConn(id int64) {

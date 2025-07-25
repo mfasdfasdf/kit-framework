@@ -2,7 +2,20 @@ package server
 
 import "encoding/json"
 
-// 消息包Type类型
+const (
+	ERROR   = 1000
+	SUCCESS = 2000
+	FAILURE = 5000
+)
+
+// 消息体type类型
+const (
+	REQUEST = iota
+	RESPONSE
+	NOTIFY
+)
+
+// 消息包flag类型
 const (
 	HANDS = iota
 	HEARTBEAT
@@ -11,36 +24,21 @@ const (
 )
 
 type MessageReqPacket struct {
-	Type   int            `json:"type"`
 	Length int            `json:"length"`
+	Type   int            `json:"type"`
 	Body   MessageReqBody `json:"body"`
 }
 
-type MessageResPacket struct {
-	Type   int            `json:"type"`
-	Length int            `json:"length"`
-	Body   MessageResBody `json:"body"`
+type MessageReqBody struct {
+	Flag  int    `json:"flag"`
+	Route string `json:"route"`
+	Data  any    `json:"data"`
 }
 
-const (
-	ERROR   = 1000
-	SUCCESS = 2000
-	FAILURE = 5000
-)
-
-// 消息体Flag类型
-const (
-	REQUEST = iota
-	RESPONSE
-	NOTIFY
-	PUSH
-)
-
-type MessageReqBody struct {
-	Flag       int    `json:"flag"`
-	Route      string `json:"route"`
-	Data       any    `json:"data"`
-	FromConnId int64  `json:"fromConnId"`
+type MessageResPacket struct {
+	Length int            `json:"length"`
+	Type   int            `json:"type"`
+	Body   MessageResBody `json:"body"`
 }
 
 type MessageResBody struct {
@@ -75,20 +73,20 @@ func WsEncodePacket(messageResPacket *MessageResPacket) ([]byte, error) {
 	return resBytes, nil
 }
 
-type MessageReqTask struct {
-	PacketType     int
-	BodyFlat       int
-	BodyRoute      string
-	BodyData       any
-	BodyFromConnId int64
+type TaskReq struct {
+	PacketType       int
+	PacketFromConnId int64
+	BodyFlat         int
+	BodyRoute        string
+	BodyData         any
 }
 
-type MessageResTask struct
-	PacketType    int
-	BodyFlat      int
-	BodyRoute     string
-	BodyCode      int
-	BodyMessage   string
-	BodyData      any
-	fffffBodyToConnIds []int64
+type TaskRes struct {
+	PacketType      int
+	PacketToConnIds []int64
+	BodyFlat        int
+	BodyRoute       string
+	BodyCode        int
+	BodyMessage     string
+	BodyData        any
 }

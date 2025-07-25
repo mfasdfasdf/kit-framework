@@ -7,13 +7,13 @@ import (
 
 type worker struct {
 	workerId   int
-	tasksQueue chan *MessageReqTask
+	tasksQueue chan *TaskReq
 }
 
 func initWorker(workerId int, queueSize int) *worker {
 	worker := &worker{
 		workerId:   workerId,
-		tasksQueue: make(chan *MessageReqTask, queueSize),
+		tasksQueue: make(chan *TaskReq, queueSize),
 	}
 	go worker.start()
 	return worker
@@ -23,32 +23,32 @@ func (w *worker) QueueSize() int {
 	return len(w.tasksQueue)
 }
 
-func (w *worker) pushTask(reqTask *MessageReqTask) {
-	w.tasksQueue <- reqTask
+func (w *worker) pushTask(taskReq *TaskReq) {
+	w.tasksQueue <- taskReq
 }
 
 func (w *worker) start() {
 	for {
 		select {
-		case reqTask, ok := <-w.tasksQueue:
+		case taskReq, ok := <-w.tasksQueue:
 			if !ok {
 				continue
 			}
-			bytes, err := json.Marshal(reqTask)
+			bytes, err := json.Marshal(taskReq)
 			if err != nil {
 				continue
 			}
 			log.Info("======>workerId: %v, 处理任务:%v", w.workerId, string(bytes))
-			handlerFunc := _handler.QueryHandler(reqTask.BodyRoute)
+			handlerFunc := _handler.QueryHandler(taskReq.BodyRoute)
 			if handlerFunc == nil {
 				continue
 			}
-			resTask := handlerFunc(reqTask)
+			resTask := handlerFunc(taskReq)
 
-			if len(resTask.BodyToConnIds) == 0 {
+			if len(resTask.PacketToConnIds) == 0 {
 				continue
 			}
-			connections := _manager.QueryBatchConn(resTask.BodyToConnIds)
+			connections := _manager.QueryBatchConn(resTask.PacketToConnIds)
 			for _, conn := range connections {
 				messageResPacket := &MessageResPacket{
 					Type: resTask.PacketType,
