@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/duke-git/lancet/v2/convertor"
 	"github.com/gorilla/websocket"
 	"github.com/mfasdfasdf/kit-framework/log"
+	"net"
 	"sync"
 )
 
@@ -16,18 +18,17 @@ type IConnector interface {
 	GetId() int64
 	reader()
 	writer()
-	ReceivePacket(message *MessageResPacket)
+	ReceiveMessagePacket(message *MessagePacket)
 }
 
-//WS连接者
-
+// WS连接者
 type WSConnector struct {
 	RWLock     sync.RWMutex
 	Id         int64
 	Kind       string
 	Conn       *websocket.Conn
-	ReaderChan chan *MessageReqPacket
-	WriterChan chan *MessageResPacket
+	ReaderChan chan *MessagePacket
+	WriterChan chan *MessagePacket
 	Status     int
 }
 
@@ -35,8 +36,8 @@ func InitWSConnector(conn *websocket.Conn, id int64) *WSConnector {
 	connector := &WSConnector{
 		Id:         id,
 		Conn:       conn,
-		ReaderChan: make(chan *MessageReqPacket, 10),
-		WriterChan: make(chan *MessageResPacket, 10),
+		ReaderChan: make(chan *MessagePacket, 10),
+		WriterChan: make(chan *MessagePacket, 10),
 		Status:     START,
 	}
 	go connector.reader()
@@ -50,45 +51,52 @@ func (o *WSConnector) GetId() int64 {
 
 func (o *WSConnector) reader() {
 	for {
-		_, bytes, err := o.Conn.ReadMessage()
+		_, messageBytes, err := o.Conn.ReadMessage()
 		if err != nil {
 			_manager.DelConn(o.Id)
 			return
 		}
-		reqPacket, err := WsDecodePacket(bytes)
+		message, err := WSDecodePacket(messageBytes)
 		if err != nil {
 			log.Error("Decode packet err:%v", err)
 			continue
 		}
-		//构建消息任务
-		beforeTask := &TaskReq{
-			PacketType:       reqPacket.Type,
-			PacketFromConnId: o.Id,
-			BodyFlat:         reqPacket.Body.Flag,
-			BodyRoute:        reqPacket.Body.Route,
-			BodyData:         reqPacket.Body.Data,
+		var contentPackReq ContentPackReq
+		contentBytes, err := convertor.ToBytes(message.Content)
+		if err != nil {
+			log.Error("any to obj err:%v", err)
+			continue
 		}
-		_dispatcher.receiveTask(beforeTask)
+		err = json.Unmarshal(contentBytes, &contentPackReq)
+		if err != nil {
+			log.Error("bytes to obj err:%v", err)
+			continue
+		}
+		//构建任务
+		taskReq := &TaskPackReq{
+			MessageType:      message.Type,
+			PacketFromConnId: o.Id,
+			ContentFlag:      contentPackReq.Flag,
+			ContentRoute:     contentPackReq.Route,
+			ContentData:      contentPackReq.Data,
+		}
+		_dispatcher.receiveTask(taskReq)
 	}
 }
 
 func (o *WSConnector) writer() {
 	for {
 		select {
-		case messageResPacket, ok := <-o.WriterChan:
+		case message, ok := <-o.WriterChan:
 			if !ok {
 				return
 			}
-			bytes, err := json.Marshal(messageResPacket)
-			if err != nil {
-				return
-			}
-			log.Info("writerChan->messageResPacket:%v", string(bytes))
-			resPacket, err := WsEncodePacket(messageResPacket)
+			log.Info("writerChan -> message:%v", message)
+			messageBytes, err := WSEncodePacket(message)
 			if err != nil {
 				log.Error("EncodePacket err:%v", err)
 			}
-			err = o.Conn.WriteMessage(websocket.TextMessage, resPacket)
+			err = o.Conn.WriteMessage(websocket.TextMessage, messageBytes)
 			if err != nil {
 				log.Error("WriteMessage err:%v", err)
 			}
@@ -96,90 +104,78 @@ func (o *WSConnector) writer() {
 	}
 }
 
-func (o *WSConnector) ReceivePacket(message *MessageResPacket) { o.WriterChan <- message }
+func (o *WSConnector) ReceiveMessagePacket(message *MessagePacket) { o.WriterChan <- message }
 
-//TCP连接者
+// TCP连接者
+type TCPConnector struct {
+	RWLock     sync.RWMutex
+	Id         int64
+	Kind       string
+	Conn       *net.TCPConn
+	ReaderChan chan *MessagePacket
+	WriterChan chan *MessagePacket
+	Status     int
+}
 
-//type TCPConnector struct {
-//	RWLock     sync.RWMutex
-//	Id         int64
-//	Kind       string
-//	Conn       *net.TCPConn
-//	ReaderChan chan *MessageReqPacket
-//	WriterChan chan *MessageResPacket
-//	Status     int
-//}
-//
-//func InitTCPConnector(conn *net.TCPConn, id int64) *TCPConnector {
-//	connector := &TCPConnector{
-//		Id:         id,
-//		Conn:       conn,
-//		ReaderChan: make(chan *MessageReqPacket, 10),
-//		WriterChan: make(chan *MessageResPacket, 10),
-//		Status:     START,
-//	}
-//	go connector.reader()
-//	go connector.writer()
-//	return connector
-//}
-//
-//func (o *TCPConnector) GetId() int64 {
-//	return o.Id
-//}
-//
-//func (o *TCPConnector) reader() {
-//	for {
-//		_, bytes, err := o.Conn.Read()
-//		if err != nil {
-//			_manager.DelConn(o.Id)
-//			return
-//		}
-//		reqPacket, err := WsDecodePacket(bytes)
-//		if err != nil {
-//			log.Error("Decode packet err:%v", err)
-//			continue
-//		}
-//		//解压的包添加请求者连接id
-//		reqPacket.Body.FromConnId = o.Id
-//		bytes, err = json.Marshal(reqPacket)
-//		if err != nil {
-//			continue
-//		}
-//		log.Info("readerChan<-messageReqPacket:%v", string(bytes))
-//		//构建消息任务
-//		beforeTask := &MessageReqTask{
-//			PacketType:     reqPacket.Type,
-//			BodyFlat:       reqPacket.Body.Flag,
-//			BodyRoute:      reqPacket.Body.Route,
-//			BodyData:       reqPacket.Body.Data,
-//			BodyFromConnId: reqPacket.Body.FromConnId,
-//		}
-//		_dispatcher.receiveTask(beforeTask)
-//	}
-//}
-//
-//func (o *TCPConnector) writer() {
-//	for {
-//		select {
-//		case messageResPacket, ok := <-o.WriterChan:
-//			if !ok {
-//				return
-//			}
-//			bytes, err := json.Marshal(messageResPacket)
-//			if err != nil {
-//				return
-//			}
-//			log.Info("writerChan->messageResPacket:%v", string(bytes))
-//			resPacket, err := WsEncodePacket(messageResPacket)
-//			if err != nil {
-//				log.Error("EncodePacket err:%v", err)
-//			}
-//			err = o.Conn.WriteMessage(websocket.TextMessage, resPacket)
-//			if err != nil {
-//				log.Error("WriteMessage err:%v", err)
-//			}
-//		}
-//	}
-//}
-//
-//func (o *TCPConnector) ReceivePacket(message *MessageResPacket) { o.WriterChan <- message }
+func InitTCPConnector(conn *net.TCPConn, id int64) *TCPConnector {
+	connector := &TCPConnector{
+		Id:         id,
+		Conn:       conn,
+		ReaderChan: make(chan *MessagePacket, 10),
+		WriterChan: make(chan *MessagePacket, 10),
+		Status:     START,
+	}
+	go connector.reader()
+	go connector.writer()
+	return connector
+}
+
+func (o *TCPConnector) GetId() int64 {
+	return o.Id
+}
+
+func (o *TCPConnector) reader() {
+	for {
+		reqPacket, err := TCPDecodePacket(o.Conn)
+		if err != nil {
+			log.Error("DecodePacket err:%v", err)
+			continue
+		}
+		log.Info("reqPacket:%v", reqPacket)
+		//构建任务
+		//beforeTask := &TaskReq{
+		//	PacketType:       reqPacket.Type,
+		//	PacketFromConnId: o.Id,
+		//	BodyFlat:         reqPacket.Body.Flag,
+		//	BodyRoute:        reqPacket.Body.Route,
+		//	BodyData:         reqPacket.Body.Data,
+		//}
+		//_dispatcher.receiveTask(beforeTask)
+	}
+}
+
+func (o *TCPConnector) writer() {
+	for {
+		select {
+		case messageResPacket, ok := <-o.WriterChan:
+			if !ok {
+				return
+			}
+			bytesData, err := json.Marshal(messageResPacket)
+			if err != nil {
+				return
+			}
+			log.Info("writerChan->messageResPacket:%v", string(bytesData))
+			resBytes, err := TCPEncodePacket(messageResPacket)
+			if err != nil {
+				log.Error("EncodePacket err:%v", err)
+			}
+			_, err = o.Conn.Write(resBytes)
+			if err != nil {
+				log.Error("WriteMessage err:%v", err)
+			}
+		}
+	}
+}
+
+func (o *TCPConnector) ReceiveMessagePacket(message *MessagePacket) { o.WriterChan <- message }

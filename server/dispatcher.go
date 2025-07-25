@@ -35,7 +35,7 @@ func initDispatcher() {
 	log.Info("======>初始化分发管理完成!<======")
 }
 
-func (d *dispatcher) receiveTask(task *TaskReq) {
+func (d *dispatcher) receiveTask(task *TaskPackReq) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	workerSize := len(d.workers)

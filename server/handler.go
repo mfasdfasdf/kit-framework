@@ -2,7 +2,7 @@ package server
 
 import "github.com/mfasdfasdf/kit-framework/log"
 
-type LogicHandler func(task *TaskReq) *TaskRes
+type LogicHandler func(task *TaskPackReq) *TaskPackRes
 
 var _handler *handler
 

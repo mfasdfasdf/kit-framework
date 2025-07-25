@@ -14,6 +14,7 @@ type Config struct {
 	Restful         RestfulConf    `mapstructure:"restful"`
 	Ws              WSConf         `mapstructure:"ws"`
 	Tcp             TCPConf        `mapstructure:"tcp"`
+	Udp             UDPConf        `mapstructure:"udp"`
 	Grpc            GrpcConf       `mapstructure:"grpc"`
 	Etcd            EtcdConf       `mapstructure:"etcd"`
 	Mongo           MongoConf      `mapstructure:"mongo"`
@@ -43,6 +44,11 @@ type WSConf struct {
 }
 
 type TCPConf struct {
+	Url  string `json:"url"`
+	Port int    `json:"port"`
+}
+
+type UDPConf struct {
 	Url  string `json:"url"`
 	Port int    `json:"port"`
 }

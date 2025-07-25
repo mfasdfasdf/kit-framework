@@ -1,19 +1,18 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/mfasdfasdf/kit-framework/log"
 )
 
 type worker struct {
 	workerId   int
-	tasksQueue chan *TaskReq
+	tasksQueue chan *TaskPackReq
 }
 
 func initWorker(workerId int, queueSize int) *worker {
 	worker := &worker{
 		workerId:   workerId,
-		tasksQueue: make(chan *TaskReq, queueSize),
+		tasksQueue: make(chan *TaskPackReq, queueSize),
 	}
 	go worker.start()
 	return worker
@@ -23,7 +22,7 @@ func (w *worker) QueueSize() int {
 	return len(w.tasksQueue)
 }
 
-func (w *worker) pushTask(taskReq *TaskReq) {
+func (w *worker) pushTask(taskReq *TaskPackReq) {
 	w.tasksQueue <- taskReq
 }
 
@@ -34,33 +33,29 @@ func (w *worker) start() {
 			if !ok {
 				continue
 			}
-			bytes, err := json.Marshal(taskReq)
-			if err != nil {
-				continue
-			}
-			log.Info("======>workerId: %v, 处理任务:%v", w.workerId, string(bytes))
-			handlerFunc := _handler.QueryHandler(taskReq.BodyRoute)
+			log.Info("======>workerId: %v, 处理任务:%v", w.workerId, taskReq)
+			handlerFunc := _handler.QueryHandler(taskReq.ContentRoute)
 			if handlerFunc == nil {
 				continue
 			}
-			resTask := handlerFunc(taskReq)
+			taskRes := handlerFunc(taskReq)
 
-			if len(resTask.PacketToConnIds) == 0 {
+			if len(taskRes.PacketSendConnIds) == 0 {
 				continue
 			}
-			connections := _manager.QueryBatchConn(resTask.PacketToConnIds)
+			connections := _manager.QueryBatchConn(taskRes.PacketSendConnIds)
 			for _, conn := range connections {
-				messageResPacket := &MessageResPacket{
-					Type: resTask.PacketType,
-					Body: MessageResBody{
-						Flag:    resTask.BodyFlat,
-						Route:   resTask.BodyRoute,
-						Code:    resTask.BodyCode,
-						Message: resTask.BodyMessage,
-						Data:    resTask.BodyData,
+				messageResPacket := &MessagePacket{
+					Type: taskRes.MessageType,
+					Content: ContentPackRes{
+						Flag:    taskRes.ContentFlag,
+						Route:   taskRes.ContentRoute,
+						Code:    taskRes.ContentCode,
+						Message: taskRes.ContentMessage,
+						Data:    taskRes.ContentData,
 					},
 				}
-				(*conn).ReceivePacket(messageResPacket)
+				(*conn).ReceiveMessagePacket(messageResPacket)
 			}
 		}
 	}
