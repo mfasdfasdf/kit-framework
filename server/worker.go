@@ -45,6 +45,9 @@ func (w *worker) start() {
 				continue
 			}
 			taskRes := handlerFunc(taskReq)
+			if taskRes == nil {
+				continue
+			}
 
 			if len(taskRes.PacketSendConnIds) == 0 {
 				continue
