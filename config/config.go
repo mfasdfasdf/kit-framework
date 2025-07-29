@@ -27,6 +27,7 @@ type Config struct {
 	MessageNodes    []MessageNode  `mapstructure:"messageNodes"`
 	Log             LogConf        `mapstructure:"log"`
 	AliYun          AliYunConf     `mapstructure:"aliYun"`
+	Custom          map[string]any `mapstructure:"custom"`
 }
 
 type HealthConf struct {
